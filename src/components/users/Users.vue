@@ -51,18 +51,20 @@
             <el-button
               type="primary"
               icon="el-icon-edit"
-              circle
               @click="showEditForm(scope.row.id)"
             ></el-button>
             <!-- 删除用户按钮 -->
             <el-button
               type="danger"
               icon="el-icon-delete"
-              circle
               @click="deleteUserInfo(scope.row.id)"
             ></el-button>
             <!-- 分配用户权限按钮 -->
-            <el-button type="warning" icon="el-icon-setting" circle></el-button>
+            <el-button
+              type="warning"
+              icon="el-icon-setting"
+              @click="showAssignRolesDialog(scope.row)"
+            ></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -143,6 +145,32 @@
           <el-button @click="resetForm('editFormRef')">重 置</el-button>
         </span>
       </el-dialog>
+      <!-- 分配角色对话框 -->
+      <el-dialog
+        title="分配角色"
+        :visible.sync="assignDialogVisible"
+        width="50%"
+        center
+        status-icon
+        @close="closeAssignDialog"
+      >
+        <el-tag>当前用户为：{{ user.username }}</el-tag>
+        <el-tag type="success">当前角色为：{{ user.role_name }}</el-tag>
+        <el-select v-model="selectedRoleId" placeholder="请选择要分配的角色">
+          <el-option
+            v-for="item in rolesList"
+            :key="item.id"
+            :label="item.roleName"
+            :value="item.id"
+          >
+          </el-option>
+        </el-select>
+        <el-form ref="assignFormRef" label-width="70px"> </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="assignDialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="assignRoles">确 定</el-button>
+        </span>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -169,6 +197,7 @@ export default {
       editDialogVisible: false,
       // 添加用户对话框默认隐藏
       centerDialogVisible: false,
+      // 查询信息
       userInfo: {
         query: '',
         pagenum: 1,
@@ -218,7 +247,16 @@ export default {
           { required: true, message: '请输入邮箱', trigger: 'blur' },
           { validator: checkMobile, trigger: 'blur' }
         ]
-      }
+      },
+      // 分配角色对话框
+      assignDialogVisible: false,
+      // 需要被分配角色的用户信息
+      user: {},
+      // 所有角色的数据列表
+      rolesList: [],
+      // 已选中的角色Id值
+      selectedRoleId: ''
+
     }
   },
   created() {
@@ -349,10 +387,42 @@ export default {
       })
       // 重新加载用户列表
       this.getUserList()
+    },
+    // 显示分配角色对话框
+    async showAssignRolesDialog(user) {
+      this.user = user
+      // 展示对话框之前，获取所有角色的列表
+      const { data: res } = await this.$http.get('roles')
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.rolesList = res.data
+      this.assignDialogVisible = true
+    },
+    // 分配角色
+    async assignRoles() {
+      if (this.selectedRoleId === '') {
+        return this.$message.error('请选择一个角色')
+      }
+      const { data: res } = await this.$http.put(`users/${this.user.id}/role`, {
+        rid: this.selectedRoleId
+      })
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.getUserList()
+      this.$message({
+        message: res.meta.msg,
+        type: 'success'
+      })
+      this.assignDialogVisible = false
+    },
+    // 监听分配角色对话框的关闭
+    closeAssignDialog() {
+      this.selectedRoleId = ''
     }
   }
 }
 </script>
 
 <style lang="less" scoped>
+.el-tag {
+  margin: 10px;
+}
 </style>
