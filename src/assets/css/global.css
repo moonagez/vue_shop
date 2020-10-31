@@ -15,4 +15,14 @@ html, body, #app {
 }
 .el-cascader-panel{
     height: 200px;
+}
+.el-steps {
+ margin: 15px 0;
+}
+.el-step__title {
+    font-size: 13px;
+}
+/* 富文本编辑器高度 */
+.ql-editor {
+    height: 300px !important;
   }
